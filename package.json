@@ -1,0 +1,31 @@
+{
+  "name": "magpie-checkin-plugins",
+  "version": "1.0.0",
+  "description": "magpie plugins that press every vendor's daily check-in (签到) and claim: ZCode, WorkBuddy, AutoClaw, CodeArts, MiniMax Code, Qoder, Raccoon and Trae, in one install",
+  "type": "module",
+  "main": "./index.mjs",
+  "exports": "./index.mjs",
+  "files": [
+    "index.mjs",
+    "packages/*/index.mjs",
+    "packages/*/prompt.mjs",
+    "packages/*/package.json",
+    "README.md"
+  ],
+  "keywords": [
+    "magpie",
+    "opencode",
+    "opencode-plugin",
+    "checkin",
+    "签到",
+    "zcode",
+    "workbuddy",
+    "autoclaw",
+    "codearts",
+    "minimax",
+    "qoder",
+    "raccoon",
+    "trae"
+  ],
+  "license": "MIT"
+}
