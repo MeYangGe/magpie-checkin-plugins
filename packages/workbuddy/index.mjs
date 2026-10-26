@@ -12,6 +12,7 @@ import { createHash, randomBytes } from "node:crypto"
 import { readFileSync } from "node:fs"
 import { homedir } from "node:os"
 import { join } from "node:path"
+import { checkinAccount as growthCheckin, growthAccountOf, supportsGrowth } from "./growth.mjs"
 
 const APP_VERSION = "2.0.0" // the version WorkBuddy's sign-in page is opened with
 const UA_VERSION = "5.5.6" // WorkBuddy/<this> is the User-Agent the API takes
@@ -2221,39 +2222,35 @@ function makePlugin(site) {
         } catch (e) {
           return { outcome: "failed", message: e?.message ?? String(e) }
         }
-        // ownApp is the 401 told apart: credits readable means the sign-in
-        // is fine and the check-in alone takes the app's device token
-        const ownApp = async () =>
-          (await meter(site, a, "/billing/meter/get-user-resource-summary").then(() => true).catch(() => false))
-            ? { outcome: "captcha", message: "check in in the WorkBuddy app: its check-in takes WorkBuddy's own device token" }
-            : { outcome: "failed", message: "WorkBuddy refused this account's sign-in; sign in to it again" }
-        let st
+        // An enterprise account has no personal growth centre, and the
+        // growth chain is the China build's alone: both answer inactive
+        // rather than press a chain the account can't have.
+        if (!supportsGrowth(site, a)) {
+          if (a?.enterpriseId) return { outcome: "inactive", message: "an enterprise account has no personal growth centre" }
+          return { outcome: "inactive", message: `${site.name} has no growth centre` }
+        }
+        // The full chain WorkBuddy's growth centre runs (growth.mjs, from
+        // connoryang331/magpie-workbuddy-growth's port of the client):
+        // the day's 签到, the daily-activity report that lights the streak,
+        // the streak's make-up/redemption/draws, and one step of the cat's
+        // travel. Each step reports what came of it; a step that fails
+        // doesn't undo the ones before it.
         try {
-          st = await meter(site, a, "/v2/billing/meter/checkin-activity-status", {})
+          const r = await growthCheckin(growthAccountOf(site, a))
+          const credit = Number(r?.credit) || 0
+          const outcome = ["claimed", "done", "inactive", "ineligible"].includes(r?.outcome) ? r.outcome : "failed"
+          // the streak's day count is the one number the chain learns along
+          // the way (the daily-activity step reports it in its own words);
+          // the rest of the message is the chain's own account of what it did
+          const streak = /连登\s*(\d+)\s*天/.exec(String(r?.message ?? ""))
+          return {
+            outcome,
+            ...(credit > 0 ? { credit } : {}),
+            ...(streak ? { streak: Number(streak[1]) } : {}),
+            ...(r?.message ? { message: r.message } : {}),
+          }
         } catch (e) {
-          if (e?.status === 401) return ownApp()
           return { outcome: "failed", message: e?.message ?? String(e) }
-        }
-        if (!st?.Active) return { outcome: "inactive", message: st?.Message || "no check-in event is on now" }
-        const streak = Number(st?.StreakDays) || 0
-        if (st?.TodayCheckedIn) return { outcome: "done", ...(streak > 0 ? { streak } : {}) }
-        let got
-        try {
-          got = await meter(site, a, "/v2/billing/meter/daily-checkin", {})
-        } catch (e) {
-          if (e?.status === 401) return ownApp()
-          // a claim the vendor says is in already is the day's answer
-          const said = String(e?.message ?? "")
-          if (/already|已签|重复/i.test(said)) return { outcome: "done", ...(streak > 0 ? { streak } : {}) }
-          return { outcome: "failed", message: said || String(e) }
-        }
-        const credit = Number(got?.Credit) || 0
-        const days = Number(got?.StreakDays) || streak
-        return {
-          outcome: "claimed",
-          ...(credit > 0 ? { credit } : {}),
-          ...(days > 0 ? { streak: days } : {}),
-          ...(got?.Message ? { message: got.Message } : {}),
         }
       },
       methods: [

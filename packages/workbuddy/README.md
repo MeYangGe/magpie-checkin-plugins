@@ -273,25 +273,31 @@ magpie (v0.1.1083 and later) asks the plugin's `checkin` hook once a
 Beijing day for each signed-in, in-use account, while the account's
 **Daily check-in** switch is on (Settings → Usage → Plugins; it follows
 the built-in WorkBuddy check-in's own switch until set on its own —
-*Check in now* on the card asks at once, whatever the switch). It reads
-the event's status (`/v2/billing/meter/checkin-activity-status`), then
-claims (`/v2/billing/meter/daily-checkin`) while the event runs and
-today's isn't in — as WorkBuddy's app does, and as magpie's built-in
-did through this plugin's fetch before the plugin took it over.
+*Check in now* on the card asks at once, whatever the switch).
 
-Only the China build has the event: WorkBuddy AI ships with it off, so
-its accounts answer *inactive* and ask nothing. The outcomes are
-magpie's: **claimed** (the day's credits and streak), **done** (already
-in today), **inactive** (no event on now), **captcha** (see below) and
-**failed** (magpie asks again in half an hour).
+The hook runs WorkBuddy's growth-centre chain, as
+[magpie-workbuddy-growth](https://github.com/connoryang331/magpie-workbuddy-growth)
+worked it out from the client, in the client's own order:
 
-WorkBuddy's app sends the check-in — and only the check-in — with an
-`X-Device-Token` from its security SDK, which a plugin can't make. A 401
-is therefore told apart by the account's credits: when they still read,
-the sign-in is good and the check-in alone refuses us, so the day's
-answer is **captcha** ("check in in the WorkBuddy app", which the plugin
-never solves); when they don't read either, the sign-in is gone and the
-outcome is *failed* with "sign in again".
+1. **the day's 签到** (`/v2/billing/meter/daily-checkin`) — the credits, and
+   the streak it continues;
+2. **the daily-activity report** (`/v2/report`) — the report that lights
+   the growth centre's streak, once a Beijing day;
+3. **the streak** (`/activity/growth/streak`, make-up cards, tier
+   redemption, the draws up to 20) — a missed yesterday is made up when a
+   card is held, unlocked 7d/14d/28d tiers are redeemed, chances are drawn;
+4. **the cat's travel**, one step a day — adopt, send, collect on arrival.
+
+Each step reports what came of it; a step that fails doesn't undo the ones
+before it, so a day's 签到 stands even when the travel is refused. The
+credits the chain collected come back as magpie's `credit`, and the streak's
+day count as `streak`.
+
+Only the China build has the growth centre, and only personal accounts
+have one: WorkBuddy AI answers *inactive*, and so does an enterprise
+account. The outcomes are magpie's: **claimed** (the chain ran and the day
+is in), **done** (already in today), **inactive** (no growth centre for
+this account), and **failed** (magpie asks again in half an hour).
 
 ## Not here
 

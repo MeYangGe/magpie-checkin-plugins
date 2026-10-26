@@ -1,12 +1,13 @@
 {
   "name": "@magpie-community/opencode-workbuddy-auth",
-  "version": "0.2.0",
-  "description": "OpenCode provider plugins for WorkBuddy's plans: WorkBuddy (CodeBuddy, copilot.tencent.com) and WorkBuddy AI (www.workbuddy.ai), with the daily check-in (签到)",
+  "version": "0.3.0",
+  "description": "OpenCode provider plugins for WorkBuddy's plans: WorkBuddy (CodeBuddy, copilot.tencent.com) and WorkBuddy AI (www.workbuddy.ai), with the daily check-in (签到) — the growth-centre chain: 签到, daily activity, streak make-up/redemption/draws and the cat's travel",
   "type": "module",
   "main": "./index.mjs",
   "exports": "./index.mjs",
   "files": [
     "index.mjs",
+    "growth.mjs",
     "README.md"
   ],
   "keywords": [

@@ -10,8 +10,8 @@ on the account's card asks at once).
 | Provider | Vendor | What it presses |
 |---|---|---|
 | `zcode` | Z.ai / BigModel (智谱) GLM Coding Plan | the day's gift-plan claims — ZCode's limited-time runs, one plan a day, the same claims the ZCode app's banner makes |
-| `workbuddy` | WorkBuddy 国内版 (CodeBuddy) | the 签到 event: credits a day, more on a streak |
-| `workbuddy-ai` | WorkBuddy 国际版 | nothing: the event is off there, so it answers *inactive* |
+| `workbuddy` | WorkBuddy 国内版 (CodeBuddy) | the growth-centre chain: the day's 签到, the daily-activity report, streak make-up/redemption/draws, and one step of the cat's travel |
+| `workbuddy-ai` | WorkBuddy 国际版 | nothing: it has no growth centre, so it answers *inactive* |
 | `autoclaw`, `autoclaw-cn` | AutoClaw (智谱 OpenClaw) | the `daily_signin` client task, plus the day's activity rewards |
 | `codearts` | Huawei Cloud CodeArts (码道) | the client's 「限时福利 → 每日领取」 |
 | `minimax-code`, `minimax-code-global` | MiniMax Code | the account credits' daily sign-in, CN and international |
@@ -65,6 +65,9 @@ app) and **failed** (magpie asks again in half an hour).
 
 Each plugin reads its vendor's own endpoints, worked out from the clients
 and from [agent2api](https://github.com/aimod-cc/agent2api)'s ports of them.
+WorkBuddy's chain is
+[magpie-workbuddy-growth](https://github.com/connoryang331/magpie-workbuddy-growth)'s
+port of the client's growth centre, folded into the plugin's own check-in.
 Where a claim needs a device id, it is the sign-in's own and stays the same
 for that account: the risk control ties a claim to the machine that made it.
 
