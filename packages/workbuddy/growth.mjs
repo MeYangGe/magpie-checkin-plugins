@@ -991,6 +991,9 @@ export async function checkinAccount(a) {
     lines.push(`签到异常：${e.message}`);
   }
   // 2) 每日活跃上报（点亮成长中心连登）
+  //    连登天数在这一步取：上报之后 /activity/growth/streak 才是今天的天数
+  //    天数只写进 message（「连登 N 天」），index.mjs 从那里读回 magpie 的
+  //    streak 字段——这里不再另存一份，同源的第二个出口只会走岔
   try {
     const d = await reportDailyActivity(a);
     if (d.sent) lines.push(`每日活跃已上报${d.streakDays ? `（连登 ${d.streakDays} 天）` : ""}`);
@@ -1002,11 +1005,12 @@ export async function checkinAccount(a) {
     lines.push(...s.lines);
   } catch (e) { lines.push(`连登失败：${e.message}`); }
   // 4) 猫猫旅行（一趟一步）
+  //    旅行只是加分项：它失败既不撤销签到，也不把 outcome 降级——
+  //    outcome 在第 1 步就定了，这里只加积分和一行说明
   try {
     const t = await runTravelOnce(a);
     if (t.credit) credit += t.credit;
     lines.push(`猫猫旅行：${t.message}`);
-    if (t.outcome === "failed" && outcome === "claimed") outcome = "claimed"; // 签到成功即 claimed，旅行失败只记日志
   } catch (e) { lines.push(`猫猫旅行异常：${e.message}`); }
   const message = lines.join("；");
   return { outcome, credit, message };

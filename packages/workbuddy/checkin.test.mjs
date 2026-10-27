@@ -113,3 +113,56 @@ test("the check-in's own failure is failed, with what the vendor said", async ()
   expect(out.outcome).toBe("failed")
   expect(String(out.message)).toContain("签到失败")
 })
+
+test("the travel's failure never takes the day's claimed away", async () => {
+  // the travel step is an extra: it adds credit and a line, but the
+  // outcome was settled by the check-in itself, so a travel that fails
+  // still answers claimed for a day that signed in
+  globalThis.fetch = async (url) => {
+    const p = new URL(String(url)).pathname
+    if (p === CHECKIN) return ok({ credit: 15 })
+    if (p === REPORT) return ok({})
+    // everything the travel needs is down
+    throw new Error("travel down")
+  }
+  const out = await checkin(WorkBuddyAuthPlugin, { ...auth, uid: "u-travel-down" })
+  expect(out.outcome).toBe("claimed")
+  expect(out.credit).toBeGreaterThanOrEqual(15)
+  expect(String(out.message)).toContain("猫猫旅行")
+})
+
+test("a day with no streak read carries no streak field at all", async () => {
+  // magpie's contract makes streak optional: absent is not zero, so the
+  // card doesn't show 「连登 0 天」 for a first-ever day
+  serve({
+    [CHECKIN]: () => ok({ credit: 5 }),
+    [REPORT]: () => ok({}),
+    "/activity/growth/streak": () => ok({ streak: { days: 0 } }),
+  })
+  const out = await checkin(WorkBuddyAuthPlugin, { ...auth, uid: "u-no-streak" })
+  expect(out.outcome).toBe("claimed")
+  expect("streak" in out).toBe(false)
+})
+
+test("the chain reports the streak it counted", async () => {
+  // the chain states the day as 「连登 N 天」 in its message and index.mjs
+  // reads the number back out of it for magpie's streak field. This is the
+  // one test that pins the wording: those words are the wire between
+  // growth.mjs and index.mjs, so a message that stops naming the day in
+  // them loses the streak quietly — that's the failure this covers
+  globalThis.fetch = async (url) => {
+    const p = new URL(String(url)).pathname
+    if (p === CHECKIN) return ok({ credit: 3 })
+    if (p === REPORT) return ok({})
+    if (p === "/activity/growth/streak") return ok({ streak: { days: 11 } })
+    if (p === "/activity/growth/heatmap") return ok({ cells: [] })
+    if (p === "/activity/growth/buddy/info") return ok({ buddy: null })
+    if (p === "/activity/growth/lottery/summary") return ok({ chances: 0 })
+    return ok(null)
+  }
+  const plugin = await WorkBuddyAuthPlugin({ client: {} })
+  const out = await plugin.auth.checkin(async () => ({ ...auth, uid: "u-counted" }))
+  expect(out.outcome).toBe("claimed")
+  expect(out.streak).toBe(11)
+  expect(String(out.message)).toContain("连登 11 天")
+})
